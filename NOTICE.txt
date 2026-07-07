@@ -1,0 +1,14 @@
+This product includes software and content derived from:
+
+- Project: jnd0/startup-perks
+- Repository: https://github.com/jnd0/startup-perks
+
+Code licensing:
+- Apache License 2.0 (see LICENSE)
+
+Content licensing (src/content/perks/):
+- Creative Commons Attribution 4.0 International (CC BY 4.0) (see LICENSE-CONTENT)
+
+Modifications in this fork may be present and are maintained by:
+- @guspatagonico
+- Repository: https://github.com/guspatagonico/astro-startup-perks

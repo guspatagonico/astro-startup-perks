@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alternativas Low-Code al Flujo de Publicación (sin Cloudflare Workers) — StartupPerks</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+  <script src="js/theme.js"></script>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-title">StartupPerks · Documentación</a>
+      <div class="nav-actions">
+        <a href="ARQUITECTURA.html">Arquitectura</a>
+        <a href="INFORME_SEGURIDAD.html">Seguridad</a>
+        <a href="ALTERNATIVAS_FLUJO_PUBLICACION.html">Alternativas PR</a>
+        <a href="ALTERNATIVAS_LOW_CODE.html">Low-Code</a>
+                <a href="LICENCIA.html">Licencia</a>
+        <button id="theme-toggle" class="btn-theme" aria-label="Cambiar tema">💻 Sistema</button>
+      </div>
+    </div>
+  </nav>
+  <main class="container">
+<h1>Alternativas Low-Code al Flujo de Publicación (sin Cloudflare Workers)</h1>
+
+<h2>Contexto</h2>
+
+<p>Actualmente, StartupPerks usa un Cloudflare Worker para recibir envíos del formulario y crear PRs en GitHub. Esto implica:</p>
+
+<ul>
+  <li>Mantener un Worker en TypeScript (~340 líneas)</li>
+  <li>Gestionar un token de GitHub con permisos de escritura</li>
+  <li>Desplegar y monitorear el Worker</li>
+  <li>Manejar la superficie de seguridad asociada</li>
+</ul>
+
+<p><strong>Objetivo:</strong> Eliminar completamente el Worker y reemplazarlo con soluciones low-code o no-code que requieran mínimo mantenimiento.</p>
+
+<hr>
+
+<h2>Criterios de Evaluación</h2>
+
+<table>
+<thead>
+  <tr>
+    <th>Criterio</th>
+    <th>Descripción</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td><strong>Sin código backend</strong></td>
+    <td>Configuración visual o máximo un <code>&lt;form&gt;</code> HTML</td>
+  </tr>
+  <tr>
+    <td><strong>Gratuito o casi gratuito</strong></td>
+    <td>Tier gratuito suficiente para el volumen esperado</td>
+  </tr>
+  <tr>
+    <td><strong>Notificaciones al equipo</strong></td>
+    <td>Cómo se entera el equipo de nuevos envíos</td>
+  </tr>
+  <tr>
+    <td><strong>Revisión cómoda</strong></td>
+    <td>Dónde y cómo el equipo revisa y procesa envíos</td>
+  </tr>
+  <tr>
+    <td><strong>Embebible en Astro</strong></td>
+    <td>Se puede integrar en el modal actual sin perder UX</td>
+  </tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2>Alternativas</h2>
+
+<h3>1. Tally.so (Recomendada)</h3>
+
+<p>Tally es un creador de formularios gratuito, ilimitado y potente. Similar a Typeform pero sin límite de respuestas en el tier gratuito.</p>
+
+<p><strong>Cómo funciona:</strong></p>
+
+<ol>
+  <li>Creas el formulario en Tally (drag & drop, 5 minutos)</li>
+  <li>Lo embebes en el modal de Astro con un <code>&lt;iframe&gt;</code> o enlace</li>
+  <li>Las respuestas llegan al panel de Tally</li>
+  <li>Tally notifica por email cada nuevo envío</li>
+  <li>El equipo revisa en el panel de Tally (o exporta a CSV/Sheets)</li>
+</ol>
+
+<p><strong>Ventajas:</strong></p>
+
+<ul>
+  <li><strong>Gratuito e ilimitado</strong> — sin límite de respuestas ni formularios</li>
+  <li>Sin marca Tally (se puede quitar el branding)</li>
+  <li>Lógica condicional (mostrar/ocultar campos según respuestas)</li>
+  <li>Validación de campos integrada (URL, email, regex)</li>
+  <li>Notificaciones por email al instante</li>
+  <li>Exportación a CSV, Google Sheets, Notion</li>
+  <li>Embebible con diseño personalizable</li>
+  <li>Cumple GDPR (datos en Europa)</li>
+</ul>
+
+<p><strong>Desventajas:</strong></p>
+
+<ul>
+  <li>El formulario se carga en un iframe (pequeña pérdida de control visual)</li>
+  <li>Dependencia de un servicio externo</li>
+  <li>Las notificaciones son solo email en el tier gratuito</li>
+</ul>
+
+<p><strong>Integración en Astro — paso a paso:</strong></p>
+
+<ol>
+  <li>Crea el formulario en <a href="https://tally.so">tally.so</a> (arrastrando los campos que necesites).</li>
+</ol>
+
+<ol>
+  <li>En el editor de Tally, ve a <strong>Share</strong> → <strong>Embed</strong> → copia el enlace estándar. Tiene esta forma:</li>
+</ol>
+
+<pre><code>https://tally.so/r/abc123</code></pre>
+
+<ol>
+  <li>Para embeberlo como popup (recomendado — reemplaza el modal actual sin perder usabilidad):</li>
+</ol>
+
+<pre><code class="language-markup">&lt;!-- Botón que abre el formulario de Tally como popup --&gt;
+&lt;button data-tally-open="abc123" data-tally-hide-title="1" data-tally-width="480"&gt;
+  Enviar un perk
+&lt;/button&gt;
+
+&lt;!-- Script del SDK de Tally --&gt;
+&lt;script is:inline src="https://tally.so/widgets/embed.js"&gt;&lt;/script&gt;</code></pre>
+
+<p>   Así se comporta igual que el modal actual: el usuario hace clic, se abre un popup sobre el sitio, completa el formulario, y al cerrar vuelve a la página.</p>
+
+<ol>
+  <li>También puedes embeberlo inline (iframe dentro del modal existente). Obtén el código desde <strong>Share</strong> → <strong>Embed</strong> → <strong>Inline</strong>:</li>
+</ol>
+
+<pre><code class="language-markup">&lt;iframe
+  data-tally-src="https://tally.so/embed/abc123?hideTitle=1&amp;transparentBackground=1"
+  width="100%"
+  height="500"
+  frameborder="0"
+  style="border: none;"
+  title="Enviar un perk"
+&gt;&lt;/iframe&gt;
+
+&lt;!-- Necesario para carga lazy del iframe --&gt;
+&lt;script is:inline src="https://tally.so/widgets/embed.js"&gt;&lt;/script&gt;</code></pre>
+
+<ol>
+  <li>Para que Tally notifique al equipo: en el editor del formulario, ve a <strong>Settings</strong> → <strong>Notifications</strong> → agrega los emails del equipo.</li>
+</ol>
+
+<p><strong>Nota:</strong> <code>abc123</code> en los ejemplos de arriba es un ID de formulario de ejemplo. Al crear tu formulario en Tally, la URL real contendrá tu ID. No uses <code>{formId}</code> literalmente — Tally genera un ID real automáticamente al crear el formulario y lo verás en la URL del editor y en la sección de Share.</p>
+
+<hr>
+
+<h3>2. Google Forms + Google Sheets</h3>
+
+<p>El clásico. Google Forms es gratuito, ilimitado y las respuestas van directo a Google Sheets.</p>
+
+<p><strong>Cómo funciona:</strong></p>
+
+<ol>
+  <li>Creas un Google Form con los campos del perk</li>
+  <li>Las respuestas se guardan automáticamente en Google Sheets</li>
+  <li>Configuras notificaciones por email en el Sheet (Tools → Notification rules)</li>
+  <li>El equipo revisa la hoja de cálculo</li>
+  <li>Opcional: usas Google Apps Script para automatizar (ej. enviar email, crear Issue)</li>
+</ol>
+
+<p><strong>Ventajas:</strong></p>
+
+<ul>
+  <li><strong>Completamente gratuito e ilimitado</strong></li>
+  <li>Google Sheets es una "base de datos" visual que todos saben usar</li>
+  <li>Sin dependencia de startups que puedan desaparecer</li>
+  <li>Se puede automatizar con Google Apps Script (gratuito)</li>
+  <li>Posibilidad de añadir columnas de estado (Pendiente, Aprobado, Rechazado)</li>
+  <li>Exportable, filtrable, ordenable</li>
+</ul>
+
+<p><strong>Desventajas:</strong></p>
+
+<ul>
+  <li>Diseño del formulario limitado (no se ve tan profesional como Tally)</li>
+  <li>Embebido en iframe con branding de Google</li>
+  <li>Google Apps Script tiene límites (pero generosos para este caso de uso)</li>
+  <li>Las notificaciones por email requieren configuración manual en Sheets</li>
+</ul>
+
+<p><strong>Integración en Astro:</strong></p>
+
+<pre><code class="language-markup">&lt;iframe
+  src="https://docs.google.com/forms/d/e/{formId}/viewform?embedded=true"
+  width="100%"
+  height="600"
+  frameborder="0"
+  style="border: none;"
+  title="Enviar un perk"
+&gt;&lt;/iframe&gt;</code></pre>
+
+<hr>
+
+<h3>3. GitHub Issue Forms</h3>
+
+<p>GitHub tiene un sistema de plantillas de Issues con formularios YAML. El usuario llena un formulario y se crea un Issue estructurado.</p>
+
+<p><strong>Cómo funciona:</strong></p>
+
+<ol>
+  <li>Creas <code>.github/ISSUE_TEMPLATE/submit-perk.yml</code> en el repositorio</li>
+  <li>El formulario define campos con validación (requerido, tipo, opciones)</li>
+  <li>El usuario hace clic en "New Issue" → elige la plantilla → llena el formulario</li>
+  <li>Se crea un Issue con los datos estructurados</li>
+  <li>El equipo revisa Issues etiquetados como <code>submission</code></li>
+</ol>
+
+<p><strong>Ventajas:</strong></p>
+
+<ul>
+  <li><strong>Cero infraestructura</strong> — todo vive en GitHub</li>
+  <li>Sin token, sin Worker, sin base de datos</li>
+  <li>Validación de campos integrada en el YAML</li>
+  <li>Issues son el mecanismo natural de revisión</li>
+  <li>Notificaciones de GitHub integradas (watch del repo)</li>
+  <li>Labels automáticos para organizar</li>
+</ul>
+
+<p><strong>Desventajas:</strong></p>
+
+<ul>
+  <li>El usuario necesita cuenta de GitHub para enviar</li>
+  <li>El formulario está en GitHub, no en el sitio (se pierde la integración visual)</li>
+  <li>No se puede embeber en el modal de Astro</li>
+  <li>Solo se puede enlazar: "¿Quieres enviar un perk? Abre un Issue aquí"</li>
+</ul>
+
+<p><strong>Ejemplo de <code>.github/ISSUE_TEMPLATE/submit-perk.yml</code>:</strong></p>
+
+<pre><code class="language-yaml">name: Enviar Perk
+description: Envía un nuevo beneficio para startups al directorio
+title: "[submission] "
+labels: ["submission", "pending-review"]
+body:
+  - type: input
+    id: company
+    attributes:
+      label: Empresa
+      placeholder: ej. Stripe
+    validations:
+      required: true
+  - type: dropdown
+    id: perkType
+    attributes:
+      label: Tipo de beneficio
+      options:
+        - credit
+        - discount
+        - trial
+        - mixed
+    validations:
+      required: true
+  - type: input
+    id: amountDisplay
+    attributes:
+      label: Valor (mostrado)
+      placeholder: ej. $50,000
+    validations:
+      required: true
+  - type: textarea
+    id: eligibility
+    attributes:
+      label: Elegibilidad
+      placeholder: ej. Para startups en etapa Seed...
+    validations:
+      required: true
+  - type: dropdown
+    id: categories
+    attributes:
+      label: Categoría principal
+      options:
+        - AI
+        - Cloud
+        - Developer Tools
+        - Payments
+        - Fintech
+        - Security
+        - Marketing
+        - Sales
+        - Productivity
+    validations:
+      required: true
+  - type: dropdown
+    id: fundingStages
+    attributes:
+      label: Etapa mínima
+      options:
+        - Bootstrap
+        - Seed
+        - Series A
+        - Series B+
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: URL del programa
+      placeholder: https://...
+    validations:
+      required: true</code></pre>
+
+<p><strong>Integración en Astro:</strong></p>
+
+<pre><code class="language-markup">&lt;a href="https://github.com/{owner}/{repo}/issues/new?template=submit-perk.yml" 
+   class="button button-primary" 
+   target="_blank"&gt;
+  Enviar un perk
+&lt;/a&gt;</code></pre>
+
+<hr>
+
+<h3>4. Netlify Forms</h3>
+
+<p>Si el sitio se despliega en Netlify, el manejo de formularios viene incluido sin configuración adicional.</p>
+
+<p><strong>Cómo funciona:</strong></p>
+
+<ol>
+  <li>Agregas <code>data-netlify="true"</code> a un <code>&lt;form&gt;</code> HTML en tu sitio Astro</li>
+  <li>Netlify detecta el formulario en el build y lo registra</li>
+  <li>Las submissions llegan al panel de Netlify</li>
+  <li>Netlify notifica por email, Slack, o webhook</li>
+  <li>El equipo revisa en el panel de Netlify</li>
+</ol>
+
+<p><strong>Ventajas:</strong></p>
+
+<ul>
+  <li><strong>Literalmente una línea de código</strong> — <code>netlify</code> en el form</li>
+  <li>Sin Worker, sin API, sin backend</li>
+  <li>Notificaciones integradas (email, Slack, webhooks salientes)</li>
+  <li>Panel de revisión limpio con filtros</li>
+  <li>Spam filtering integrado (Netlify usa honeypot automático)</li>
+  <li>Tier gratuito: 100 submissions/mes</li>
+  <li>Se puede integrar con Netlify Functions si luego quieres automatizar</li>
+</ul>
+
+<p><strong>Desventajas:</strong></p>
+
+<ul>
+  <li><strong>Requiere desplegar en Netlify</strong> (cambiarse de Cloudflare Pages si es el caso)</li>
+  <li>Límite de 100 submissions/mes en tier gratuito</li>
+  <li>El formulario debe estar en el HTML estático (no en un modal dinámico — funciona pero requiere <code>data-netlify="true"</code> en el HTML pre-renderizado)</li>
+</ul>
+
+<p><strong>Integración en Astro:</strong></p>
+
+<pre><code class="language-markup">&lt;form name="submit-perk" method="POST" data-netlify="true" netlify-honeypot="website"&gt;
+  &lt;input type="hidden" name="form-name" value="submit-perk" /&gt;
+  
+  &lt;input name="company" required placeholder="Empresa" /&gt;
+  &lt;select name="perkType" required&gt;
+    &lt;option value="credit"&gt;Credit&lt;/option&gt;
+    &lt;option value="discount"&gt;Discount&lt;/option&gt;
+  &lt;/select&gt;
+  &lt;input name="amountDisplay" required placeholder="$50,000" /&gt;
+  &lt;textarea name="eligibility" required&gt;&lt;/textarea&gt;
+  &lt;select name="categories" required&gt;...&lt;/select&gt;
+  &lt;select name="fundingStages" required&gt;...&lt;/select&gt;
+  &lt;input name="url" type="url" required /&gt;
+  
+  &lt;!-- Honeypot (oculto con CSS) --&gt;
+  &lt;input name="website" tabindex="-1" autocomplete="off" style="display:none" /&gt;
+  
+  &lt;button type="submit"&gt;Enviar&lt;/button&gt;
+&lt;/form&gt;</code></pre>
+
+<hr>
+
+<h3>5. Formspree</h3>
+
+<p>Servicio de backend de formularios. Creas un endpoint y apuntas tu <code>&lt;form&gt;</code> a él.</p>
+
+<p><strong>Cómo funciona:</strong></p>
+
+<ol>
+  <li>Creas una cuenta en Formspree, obtienes un endpoint URL</li>
+  <li>El <code>&lt;form&gt;</code> del sitio hace <code>action="https://formspree.io/f/{formId}" method="POST"</code></li>
+  <li>Formspree recibe, valida, y almacena</li>
+  <li>Notifica por email</li>
+  <li>Panel de revisión en Formspree</li>
+</ol>
+
+<p><strong>Ventajas:</strong></p>
+
+<ul>
+  <li>Funciona con cualquier hosting (sin depender de Netlify/Vercel)</li>
+  <li>Tier gratuito: 50 submissions/mes</li>
+  <li>Spam filtering (honeypot + reCAPTCHA)</li>
+  <li>Redirección a URL de confirmación personalizada</li>
+  <li>Validación de email y patrones</li>
+</ul>
+
+<p><strong>Desventajas:</strong></p>
+
+<ul>
+  <li>Límite bajo en tier gratuito (50/mes)</li>
+  <li>Marca Formspree en tier gratuito</li>
+  <li>Panel de revisión básico</li>
+</ul>
+
+<hr>
+
+<h3>6. Airtable + Airtable Forms</h3>
+
+<p>Airtable es una base de datos visual con formularios integrados.</p>
+
+<p><strong>Cómo funciona:</strong></p>
+
+<ol>
+  <li>Creas una base en Airtable con los campos del perk</li>
+  <li>Habilitas el "Form view" que genera un formulario público</li>
+  <li>Las submissions van directo a la base de Airtable</li>
+  <li>El equipo revisa en Airtable (interfaz tipo spreadsheet pero más potente)</li>
+  <li>Notificaciones por email o integración con Slack</li>
+</ol>
+
+<p><strong>Ventajas:</strong></p>
+
+<ul>
+  <li>Interfaz de revisión excelente (filtros, vistas, agrupaciones)</li>
+  <li>Posibilidad de añadir campos de estado y asignar a miembros del equipo</li>
+  <li>Automatizaciones integradas (ej. al cambiar estado a "Aprobado", enviar email)</li>
+  <li>Embebible en iframe</li>
+  <li>Tier gratuito: 1,000 registros por base, 100 submissions/mes</li>
+</ul>
+
+<p><strong>Desventajas:</strong></p>
+
+<ul>
+  <li>Límite de registros en tier gratuito (1,000)</li>
+  <li>Más complejo de lo necesario para este caso de uso</li>
+  <li>Dependencia de un servicio que podría cambiar precios</li>
+</ul>
+
+<hr>
+
+<h3>7. FormKeep</h3>
+
+<p>Backend de formularios con panel de revisión visual.</p>
+
+<p><strong>Cómo funciona:</strong></p>
+
+<ol>
+  <li>Creas un formulario en FormKeep, obtienes un endpoint</li>
+  <li>Apuntas tu <code>&lt;form&gt;</code> a ese endpoint</li>
+  <li>FormKeep recibe, valida, y muestra en panel</li>
+  <li>Notificaciones por email, Slack, webhook</li>
+</ol>
+
+<p><strong>Ventajas:</strong></p>
+
+<ul>
+  <li>Panel de revisión con estados (New, Reviewed, Archived)</li>
+  <li>Spam filtering</li>
+  <li>Exportación a CSV</li>
+  <li>Webhooks para automatización</li>
+</ul>
+
+<p><strong>Desventajas:</strong></p>
+
+<ul>
+  <li>Tier gratuito limitado o inexistente (desde $4.99/mes)</li>
+  <li>No justifica el costo para este volumen</li>
+</ul>
+
+<hr>
+
+<h2>Tabla Comparativa</h2>
+
+<table>
+<thead>
+  <tr>
+    <th>Alternativa</th>
+    <th>Código</th>
+    <th>Infraestructura</th>
+    <th>Gratis ilimitado</th>
+    <th>Revisión cómoda</th>
+    <th>Embebible</th>
+    <th>Notificaciones</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td><strong>Google Forms</strong></td>
+    <td>0 líneas</td>
+    <td>0</td>
+    <td>Sí</td>
+    <td>★★★★☆</td>
+    <td>iframe</td>
+    <td>Email</td>
+  </tr>
+  <tr>
+    <td><strong>GitHub Issue Forms</strong></td>
+    <td>1 archivo YAML</td>
+    <td>0</td>
+    <td>Sí</td>
+    <td>★★★★★</td>
+    <td>No (enlace)</td>
+    <td>GitHub notifs</td>
+  </tr>
+  <tr>
+    <td><strong>Netlify Forms</strong></td>
+    <td><code>&lt;form&gt;</code> HTML</td>
+    <td>0*</td>
+    <td>100/mes</td>
+    <td>★★★★☆</td>
+    <td>Nativo</td>
+    <td>Email + Slack</td>
+  </tr>
+  <tr>
+    <td><strong>Formspree</strong></td>
+    <td><code>&lt;form&gt;</code> HTML</td>
+    <td>0</td>
+    <td>50/mes</td>
+    <td>★★★☆☆</td>
+    <td>Nativo</td>
+    <td>Email</td>
+  </tr>
+  <tr>
+    <td><strong>Airtable</strong></td>
+    <td>0 líneas</td>
+    <td>0</td>
+    <td>1,000 registros</td>
+    <td>★★★★★</td>
+    <td>iframe</td>
+    <td>Email + Slack</td>
+  </tr>
+</tbody>
+</table>
+
+<p>*Requiere hosting en Netlify.</p>
+
+<hr>
+
+<h2>Recomendaciones</h2>
+
+<h3>Opción A: Máxima simplicidad (recomendada)</h3>
+
+<p><strong>GitHub Issue Forms</strong> — si puedes aceptar que el envío ocurra en GitHub en lugar del sitio.</p>
+
+<ul>
+  <li>Cero infraestructura, cero costo, cero mantenimiento</li>
+  <li>1 archivo YAML de ~50 líneas</li>
+  <li>El equipo ya está en GitHub, es su herramienta natural</li>
+  <li>Issues son trazables, etiquetables, asignables</li>
+  <li>Cambiar el botón "Submit Perk" en el modal por un enlace al Issue form</li>
+</ul>
+
+<h3>Opción B: Embebido sin código</h3>
+
+<p><strong>Tally.so</strong> — si quieres mantener el formulario embebido en el sitio.</p>
+
+<ul>
+  <li>5 minutos de configuración visual</li>
+  <li>El <code>&lt;iframe&gt;</code> reemplaza al modal actual</li>
+  <li>Gratuito e ilimitado</li>
+  <li>Notificaciones por email a todo el equipo</li>
+</ul>
+
+<h3>Opción C: Si ya estás en Netlify</h3>
+
+<p><strong>Netlify Forms</strong> — literalmente una línea de código.</p>
+
+<ul>
+  <li>Agregar <code>data-netlify="true"</code> al form existente</li>
+  <li>Eliminar el Worker completamente</li>
+  <li>Panel de revisión en Netlify con notificaciones</li>
+</ul>
+
+<hr>
+
+<h2>Comparativa con el flujo actual</h2>
+
+<table>
+<thead>
+  <tr>
+    <th>Aspecto</th>
+    <th>Flujo Actual (Worker + PR)</th>
+    <th>GitHub Issue Forms</th>
+    <th>Tally.so</th>
+    <th>Netlify Forms</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>Infraestructura</td>
+    <td>Cloudflare Worker</td>
+    <td>0</td>
+    <td>0</td>
+    <td>Netlify</td>
+  </tr>
+  <tr>
+    <td>Costo mensual</td>
+    <td>$0 (tier gratuito Worker)</td>
+    <td>$0</td>
+    <td>$0</td>
+    <td>$0</td>
+  </tr>
+  <tr>
+    <td>Seguridad</td>
+    <td>Token GitHub con write</td>
+    <td>Cuenta GitHub del usuario</td>
+    <td>0</td>
+    <td>0</td>
+  </tr>
+  <tr>
+    <td>Riesgo de rotura</td>
+    <td>API GitHub, expiración token</td>
+    <td>0</td>
+    <td>Tally caído</td>
+    <td>Netlify caído</td>
+  </tr>
+  <tr>
+    <td>Revisión por el equipo</td>
+    <td>PRs en GitHub</td>
+    <td>Issues en GitHub</td>
+    <td>Panel Tally</td>
+    <td>Panel Netlify</td>
+  </tr>
+  <tr>
+    <td>Tiempo hasta publicar</td>
+    <td>5 min (revisar PR + merge)</td>
+    <td>~10 min (crear .md manual)</td>
+    <td>~10 min (crear .md manual)</td>
+    <td>~10 min (crear .md manual)</td>
+  </tr>
+</tbody>
+</table>
+
+<p><strong>Conclusión:</strong> Cualquiera de las opciones elimina la complejidad del Worker, el token de GitHub con permisos de escritura, y el riesgo de la API de GitHub. A cambio, el equipo dedica 5-10 minutos extra por envío para crear manualmente el archivo <code>.md</code>. Para el volumen actual de envíos de StartupPerks, esa compensación es claramente favorable.</p>
+
+<p>La decisión principal es: <strong>¿el formulario debe estar en el sitio (Tally/Netlify) o puede estar en GitHub (Issue Forms)?</strong></p>
+  </main>
+  <footer class="footer">
+    <p>Autor: <a href="https://github.com/guspatagonico" target="_blank" rel="noopener">Gustavo Adrián Salvini</a></p>
+  </footer>
+</body>
+</html>

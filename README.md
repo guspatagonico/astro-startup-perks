@@ -43,9 +43,9 @@ If `PUBLIC_SUBMISSION_API_URL` is set, the submit form creates a PR automaticall
    - Build output directory: `dist`
    - Root directory: repository root
 4. Set environment variables for Preview and Production:
-    - `PUBLIC_REPO_URL=https://github.com/your-org/startupperks`
-    - `PUBLIC_REPO_BRANCH=main`
-    - `PUBLIC_SITE_URL=https://startup-perks.com`
+   - `PUBLIC_REPO_URL=https://github.com/your-org/startupperks`
+   - `PUBLIC_REPO_BRANCH=main`
+   - `PUBLIC_SITE_URL=https://startup-perks.com`
 5. Save and deploy.
 
 ### Wrangler CLI (optional)
@@ -133,7 +133,17 @@ You can also use the homepage `Submit perk` form to generate a valid perk file a
 - `bun run check` passes.
 - License is added before publishing (recommended: Apache-2.0 for code and CC BY 4.0 for content).
 
-## License
+## Licensing
 
-- Code in this repository is licensed under `Apache-2.0` (see `LICENSE`).
-- Perk/content data in `src/content/perks/` is licensed under `CC BY 4.0` (see `LICENSE-CONTENT`).
+This repository is a fork of [jnd0/startup-perks](https://github.com/jnd0/startup-perks).
+
+- Source code in this repository is licensed under the **Apache License 2.0** (see [`LICENSE`](./LICENSE)).
+- Content data under `src/content/perks/` is licensed under **Creative Commons Attribution 4.0 International (CC BY 4.0)** (see [`LICENSE-CONTENT`](./LICENSE-CONTENT)).
+
+## Attribution
+
+Original project: **jnd0/startup-perks**  
+Source: https://github.com/jnd0/startup-perks
+
+This fork is maintained by **@guspatagonico** and may include modifications.  
+Where applicable, modified files and/or content entries should indicate that changes were made.

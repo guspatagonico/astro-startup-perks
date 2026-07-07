@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alternativas al Flujo de Publicación vía GitHub PR — StartupPerks</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+  <script src="js/theme.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js" defer></script>
+  <script>
+    (function() {
+      function getMermaidTheme() {
+        var theme = document.documentElement.getAttribute("data-theme");
+        var isDark = theme === "dark" || (!theme && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        return {
+          theme: "base",
+          themeVariables: isDark ? {
+            primaryColor: "#272625", primaryTextColor: "#e8e4db", primaryBorderColor: "#3d3a36", lineColor: "#6d6a64",
+            secondaryColor: "#1e1d1c", tertiaryColor: "#1e1d1c", background: "#151413", mainBkg: "#1e1d1c",
+            nodeBorder: "#3d3a36", clusterBkg: "rgba(39,38,37,0.6)", clusterBorder: "#3d3a36",
+            titleColor: "#e8e4db", edgeLabelBackground: "#151413", nodeTextColor: "#e8e4db"
+          } : {
+            primaryColor: "#f5f5f4", primaryTextColor: "#1a1918", primaryBorderColor: "#dedbd7", lineColor: "#9d9994",
+            secondaryColor: "#fafaf9", tertiaryColor: "#fafaf9", background: "#fffefe", mainBkg: "#f5f5f4",
+            nodeBorder: "#dedbd7", clusterBkg: "rgba(240,239,237,0.6)", clusterBorder: "#dedbd7",
+            titleColor: "#1a1918", edgeLabelBackground: "#fffefe", nodeTextColor: "#1a1918"
+          }
+        };
+      }
+      document.addEventListener("DOMContentLoaded", function() {
+        mermaid.initialize(Object.assign({ startOnLoad: true, securityLevel: "loose" }, getMermaidTheme()));
+      });
+    })();
+  </script></head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-title">StartupPerks · Documentación</a>
+      <div class="nav-actions">
+        <a href="ARQUITECTURA.html">Arquitectura</a>
+        <a href="INFORME_SEGURIDAD.html">Seguridad</a>
+        <a href="ALTERNATIVAS_FLUJO_PUBLICACION.html">Alternativas PR</a>
+        <a href="ALTERNATIVAS_LOW_CODE.html">Low-Code</a>
+                <a href="LICENCIA.html">Licencia</a>
+        <button id="theme-toggle" class="btn-theme" aria-label="Cambiar tema">💻 Sistema</button>
+      </div>
+    </div>
+  </nav>
+  <main class="container">
+<h1>Alternativas al Flujo de Publicación vía GitHub PR</h1>
+
+<h2>Situación Actual</h2>
+
+<p>El flujo actual de envío de perks funciona así:</p>
+
+<ol>
+  <li>Usuario llena el formulario en la web</li>
+  <li>El Worker de Cloudflare valida los datos</li>
+  <li>El Worker crea una rama en GitHub, sube un archivo <code>.md</code> y abre un PR borrador</li>
+  <li>El equipo de desarrollo revisa el PR, lo edita si es necesario, y hace merge</li>
+</ol>
+
+<p><strong>Problema:</strong> Este flujo requiere un token de GitHub con permisos de escritura, manejo de ramas, creación de blobs, y comunicación con la API de GitHub. Es frágil (si el token expira, si GitHub cambia la API, si hay conflictos de rama) y conlleva riesgos de seguridad (ver <code>INFORME_SEGURIDAD.md</code>).</p>
+
+<hr>
+
+<h2>Criterios de Evaluación</h2>
+
+<p>Cada alternativa se evalúa según:</p>
+
+<table>
+<thead>
+  <tr>
+    <th>Criterio</th>
+    <th>Descripción</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td><strong>Seguridad</strong></td>
+    <td>¿Reduce la superficie de ataque respecto al flujo actual?</td>
+  </tr>
+  <tr>
+    <td><strong>UX del usuario</strong></td>
+    <td>¿La experiencia de envío sigue siendo fluida?</td>
+  </tr>
+  <tr>
+    <td><strong>Carga para el equipo dev</strong></td>
+    <td>¿Cuánto trabajo manual adicional requiere del equipo?</td>
+  </tr>
+  <tr>
+    <td><strong>Costo</strong></td>
+    <td>¿Requiere servicios pagos adicionales?</td>
+  </tr>
+  <tr>
+    <td><strong>Escalabilidad</strong></td>
+    <td>¿Soporta bien un volumen creciente de envíos?</td>
+  </tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2>Alternativas</h2>
+
+<h3>1. GitHub Issues como Buzón de Envíos</h3>
+
+<p>En lugar de crear un PR con el archivo markdown, el Worker crea un <strong>GitHub Issue</strong> con los datos del envío formateados.</p>
+
+<p><strong>Flujo:</strong></p>
+
+<ol>
+  <li>Usuario envía formulario → Worker de Cloudflare</li>
+  <li>Worker valida los datos</li>
+  <li>Worker crea un Issue en GitHub con título <code>[submission] Nombre de la Empresa</code> y cuerpo con los datos estructurados</li>
+  <li>El Issue queda abierto para que el equipo lo revise</li>
+  <li>El equipo crea manualmente el archivo <code>.md</code> y cierra el Issue</li>
+</ol>
+
+<p><strong>Ventajas:</strong></p>
+
+<ul>
+  <li>Más simple que crear ramas y PRs — solo una llamada a la API (<code>POST /repos/{owner}/{repo}/issues</code>)</li>
+  <li>Los Issues son el mecanismo natural de GitHub para tareas pendientes</li>
+  <li>Se pueden usar labels (<code>submission</code>, <code>pending-review</code>, <code>approved</code>, <code>rejected</code>) para organizar</li>
+  <li>Sin riesgo de conflictos de rama ni blobs huérfanos</li>
+  <li>El token solo necesita permiso <code>issues:write</code> (más restrictivo que <code>contents:write</code>)</li>
+</ul>
+
+<p><strong>Desventajas:</strong></p>
+
+<ul>
+  <li>El equipo debe crear manualmente el archivo <code>.md</code> a partir de los datos del Issue</li>
+  <li>Si hay muchos envíos, gestionar Issues puede volverse tedioso</li>
+</ul>
+
+<p><strong>Complejidad de implementación:</strong> Muy baja. Cambiar <code>createBranch</code> + <code>createPerkFile</code> + <code>createPullRequest</code> por una sola llamada a la API de Issues.</p>
+
+<p><strong>Ejemplo de payload para el Issue:</strong></p>
+
+<pre><code class="language-json">{
+  "title": "[submission] Stripe",
+  "body": "## Datos del envío\n\n- **Empresa:** Stripe\n- **Tipo:** credit\n- **Valor:** $50,000\n- **Elegibilidad:** Para startups en etapa Seed...\n- **Categoría:** Payments\n- **Etapa:** Seed\n- **URL:** https://stripe.com/startups\n\n---\n\n_Enviado desde el formulario público de StartupPerks._",
+  "labels": ["submission", "pending-review"]
+}</code></pre>
+
+<hr>
+
+<h3>2. Almacenamiento en Base de Datos (Cloudflare D1 o KV) + Panel Admin</h3>
+
+<p>Los envíos se guardan en una base de datos y el equipo tiene un panel simple para revisarlos.</p>
+
+<p><strong>Flujo:</strong></p>
+
+<ol>
+  <li>Usuario envía formulario → Worker guarda en D1 (SQL) o KV (key-value)</li>
+  <li>El equipo accede a un panel admin simple (HTML estático servido por el mismo Worker o una página protegida del sitio Astro)</li>
+  <li>El panel muestra envíos pendientes con botones "Aprobar" (genera el <code>.md</code> y crea PR) o "Rechazar"</li>
+  <li>Los envíos aprobados se publican automáticamente</li>
+</ol>
+
+<p><strong>Ventajas:</strong></p>
+
+<ul>
+  <li>Experiencia de revisión muy eficiente (un panel dedicado)</li>
+  <li>Los datos persisten sin depender de GitHub</li>
+  <li>Se puede añadir estado (<code>pending</code>, <code>approved</code>, <code>rejected</code>, <code>needs-info</code>)</li>
+  <li>Flujo semi-automatizado: revisión manual, publicación automática</li>
+  <li>D1 tiene generoso tier gratuito (5GB almacenamiento, 5M lecturas/mes)</li>
+</ul>
+
+<p><strong>Desventajas:</strong></p>
+
+<ul>
+  <li>Mayor complejidad de implementación (schema de DB, panel admin, autenticación del panel)</li>
+  <li>Requiere proteger el panel admin con algún mecanismo (contraseña compartida, IP allowlist, Cloudflare Access)</li>
+  <li>Costo adicional si se excede el tier gratuito</li>
+</ul>
+
+<p><strong>Complejidad de implementación:</strong> Media. Requiere:</p>
+
+<ol>
+  <li>Schema de D1 para la tabla <code>submissions</code></li>
+  <li>Endpoints en el Worker: <code>GET /admin/submissions</code>, <code>POST /admin/submissions/:id/approve</code>, <code>POST /admin/submissions/:id/reject</code></li>
+  <li>Página admin estática con login simple</li>
+  <li>Workflow de publicación automática al aprobar</li>
+</ol>
+
+<hr>
+
+<h3>3. Notificación por Email (Resend, Mailchannels, o SendGrid)</h3>
+
+<p>El Worker envía un email al equipo de desarrollo con los datos del envío. El equipo revisa y actúa manualmente.</p>
+
+<p><strong>Flujo:</strong></p>
+
+<ol>
+  <li>Usuario envía formulario → Worker de Cloudflare</li>
+  <li>Worker valida los datos</li>
+  <li>Worker envía un email al equipo con los datos formateados</li>
+  <li>El equipo revisa el email, crea el archivo <code>.md</code>, y hace commit</li>
+</ol>
+
+<p><strong>Ventajas:</strong></p>
+
+<ul>
+  <li>Extremadamente simple de implementar</li>
+  <li>Sin dependencia de APIs externas complejas</li>
+  <li>Mailchannels tiene integración gratuita con Cloudflare Workers</li>
+  <li>Los emails persisten en la bandeja de entrada como registro</li>
+</ul>
+
+<p><strong>Desventajas:</strong></p>
+
+<ul>
+  <li>Totalmente manual para el equipo</li>
+  <li>Sin tracking de estado (no se sabe qué envíos ya se procesaron)</li>
+  <li>Los emails pueden perderse en spam o pasar desapercibidos</li>
+  <li>Escala mal con volumen alto</li>
+</ul>
+
+<p><strong>Complejidad de implementación:</strong> Muy baja. Solo agregar el envío de email al Worker actual.</p>
+
+<hr>
+
+<h3>4. Webhook a Slack / Discord</h3>
+
+<p>El Worker envía los envíos a un canal de Slack o Discord mediante webhook. El equipo revisa en el chat y actúa.</p>
+
+<p><strong>Flujo:</strong></p>
+
+<ol>
+  <li>Usuario envía formulario → Worker de Cloudflare</li>
+  <li>Worker valida los datos</li>
+  <li>Worker envía un mensaje a un canal de Slack/Discord con los datos formateados</li>
+  <li>El equipo revisa en el chat, crea el archivo <code>.md</code>, y hace commit</li>
+</ol>
+
+<p><strong>Ventajas:</strong></p>
+
+<ul>
+  <li>Muy simple de implementar</li>
+  <li>Slack/Discord es donde el equipo ya trabaja</li>
+  <li>Webhooks son nativos y gratuitos</li>
+  <li>Visibilidad inmediata para todo el equipo</li>
+  <li>Se puede usar emojis/reacts para marcar envíos como revisados</li>
+</ul>
+
+<p><strong>Desventajas:</strong></p>
+
+<ul>
+  <li>Sin estructura de datos (los mensajes de chat no son una base de datos)</li>
+  <li>Sin tracking formal de estado</li>
+  <li>Si el mensaje se pierde en el historial del chat, el envío se olvida</li>
+</ul>
+
+<p><strong>Complejidad de implementación:</strong> Muy baja. Una llamada <code>fetch</code> al webhook URL.</p>
+
+<p><strong>Ejemplo de payload para Slack:</strong></p>
+
+<pre><code class="language-json">{
+  "text": "Nuevo envío de perk",
+  "blocks": [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Nuevo envío:* Stripe\n*Tipo:* credit | *Valor:* $50,000\n*Categoría:* Payments | *Etapa:* Seed\n*URL:* https://stripe.com/startups"
+      }
+    }
+  ]
+}</code></pre>
+
+<hr>
+
+<h3>5. Archivo de Cola en el Repositorio (JSON en Git)</h3>
+
+<p>Los envíos se guardan como entradas en un archivo JSON dentro del mismo repositorio, creando un PR simple que solo modifica ese archivo.</p>
+
+<p><strong>Flujo:</strong></p>
+
+<ol>
+  <li>Usuario envía formulario → Worker</li>
+  <li>Worker valida los datos</li>
+  <li>Worker lee <code>submissions-queue.json</code> de la rama principal, agrega la entrada, y crea un PR solo con ese cambio</li>
+  <li>El equipo revisa el PR, crea el archivo <code>.md</code> correspondiente, elimina la entrada del JSON, y hace merge</li>
+</ol>
+
+<p><strong>Ventajas:</strong></p>
+
+<ul>
+  <li>Todo vive en Git — trazabilidad completa</li>
+  <li>Sin base de datos externa</li>
+  <li>El PR es mucho más simple (modificar un JSON vs crear un archivo nuevo)</li>
+  <li>Se pueden tener múltiples envíos en un mismo PR</li>
+</ul>
+
+<p><strong>Desventajas:</strong></p>
+
+<ul>
+  <li>Riesgo de conflictos si hay envíos simultáneos (el worker tendría que manejar rebase)</li>
+  <li>Sigue requiriendo token de GitHub con permisos de escritura</li>
+  <li>No elimina la complejidad de git del todo</li>
+</ul>
+
+<p><strong>Complejidad de implementación:</strong> Media-baja. Similar al actual pero con un solo archivo y sin creación de ramas nuevas.</p>
+
+<hr>
+
+<h3>6. Formulario Externo (Google Forms / Typeform / Tally)</h3>
+
+<p>Externalizar completamente el formulario de envío a un servicio de formularios. El equipo revisa las respuestas en una hoja de cálculo.</p>
+
+<p><strong>Flujo:</strong></p>
+
+<ol>
+  <li>Usuario llena un Google Form / Typeform / Tally embebido en el sitio</li>
+  <li>Las respuestas se guardan automáticamente en Google Sheets / panel del servicio</li>
+  <li>El equipo revisa periódicamente la hoja de cálculo</li>
+  <li>El equipo crea manualmente los archivos <code>.md</code> para las entradas aprobadas</li>
+</ol>
+
+<p><strong>Ventajas:</strong></p>
+
+<ul>
+  <li>Cero código que mantener — el Worker de submit-api deja de ser necesario</li>
+  <li>Google Forms/Typeform son gratuitos para uso básico</li>
+  <li>Interfaz de revisión familiar (hoja de cálculo)</li>
+  <li>Sin superficie de ataque (sin API propia)</li>
+  <li>Tally es especialmente bueno: gratuito, ilimitado, embebible, soporta notificaciones por email</li>
+</ul>
+
+<p><strong>Desventajas:</strong></p>
+
+<ul>
+  <li>La experiencia de envío es menos integrada (redirección a servicio externo)</li>
+  <li>Sin automatización de la publicación</li>
+  <li>Dependencia de un servicio externo</li>
+  <li>Tally/Typeform pueden tener límites en tier gratuito</li>
+</ul>
+
+<p><strong>Complejidad de implementación:</strong> Mínima. Reemplazar el modal por un embed o enlace al formulario externo. Eliminar el Worker completamente.</p>
+
+<hr>
+
+<h2>Tabla Comparativa</h2>
+
+<table>
+<thead>
+  <tr>
+    <th>Alternativa</th>
+    <th>Simplicidad</th>
+    <th>Seguridad</th>
+    <th>UX Usuario</th>
+    <th>Carga Dev</th>
+    <th>Costo</th>
+    <th>Escalabilidad</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>2. D1 + Panel Admin</td>
+    <td>★★☆☆☆</td>
+    <td>★★★★★</td>
+    <td>★★★★★</td>
+    <td>★★★★☆</td>
+    <td>$0*</td>
+    <td>★★★★★</td>
+  </tr>
+  <tr>
+    <td>3. Email</td>
+    <td>★★★★★</td>
+    <td>★★★★☆</td>
+    <td>★★★★★</td>
+    <td>★★☆☆☆</td>
+    <td>$0</td>
+    <td>★★☆☆☆</td>
+  </tr>
+  <tr>
+    <td>4. Slack/Discord</td>
+    <td>★★★★★</td>
+    <td>★★★★☆</td>
+    <td>★★★★★</td>
+    <td>★★★☆☆</td>
+    <td>$0</td>
+    <td>★★★☆☆</td>
+  </tr>
+  <tr>
+    <td>5. JSON en Git</td>
+    <td>★★★☆☆</td>
+    <td>★★★☆☆</td>
+    <td>★★★★★</td>
+    <td>★★★☆☆</td>
+    <td>$0</td>
+    <td>★★★☆☆</td>
+  </tr>
+  <tr>
+    <td>6. Google Forms/Tally</td>
+    <td>★★★★★</td>
+    <td>★★★★★</td>
+    <td>★★★☆☆</td>
+    <td>★★★☆☆</td>
+    <td>$0</td>
+    <td>★★★★☆</td>
+  </tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2>Recomendación</h2>
+
+<h3>Para empezar rápido (hoy mismo): <strong>Slack/Discord Webhook + GitHub Issues (híbrido)</strong></h3>
+
+<p>Combinar dos enfoques simples:</p>
+
+<ol>
+  <li><strong>Worker envía a Slack/Discord</strong> — notificación inmediata al equipo</li>
+  <li><strong>Worker también crea un GitHub Issue</strong> — trazabilidad y tracking de estado</li>
+</ol>
+
+<p>El Worker sería extremadamente simple: validar payload, enviar mensaje a Slack, crear Issue en GitHub. ~30 líneas de código adicional.</p>
+
+<h3>Para una solución más completa (a medio plazo): <strong>D1 + Panel Admin</strong></h3>
+
+<p>Si el volumen de envíos crece, migrar a base de datos con panel de revisión. Esto da:</p>
+
+<ul>
+  <li>Tracking de estado real (pendiente, aprobado, rechazado, necesita-info)</li>
+  <li>Panel dedicado para revisar y publicar</li>
+  <li>Posibilidad de notificar al usuario cuando su envío es aprobado</li>
+</ul>
+
+<hr>
+
+<h2>Implementación Recomendada: GitHub Issues + Slack</h2>
+
+<h3>Cambios necesarios en el Worker</h3>
+
+<p>Reemplazar las funciones <code>createBranch</code>, <code>createPerkFile</code>, <code>createPullRequest</code>, <code>getBaseBranchSha</code> por dos funciones nuevas:</p>
+
+<pre><code class="language-typescript">// Enviar a Slack (opcional, solo si SLACK_WEBHOOK_URL está configurada)
+async function notifySlack(submission: SubmissionPayload, env: Env): Promise&lt;void&gt; {
+  if (!env.SLACK_WEBHOOK_URL) return;
+  
+  const message = {
+    text: `Nuevo envío: ${submission.company}`,
+    blocks: [
+      {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: [
+            `*Nuevo envío de perk:* ${submission.company}`,
+            `*Tipo:* ${submission.perkType} | *Valor:* ${submission.amountDisplay}`,
+            `*Categoría:* ${submission.categories.join(", ")} | *Etapa:* ${submission.fundingStages.join(", ")}`,
+            `*Elegibilidad:* ${submission.eligibility}`,
+            `*URL:* ${submission.url}`,
+          ].join("\n"),
+        },
+      },
+    ],
+  };
+
+  await fetch(env.SLACK_WEBHOOK_URL, {
+    method: "POST",
+    body: JSON.stringify(message),
+  });
+}
+
+// Crear Issue en GitHub
+async function createSubmissionIssue(submission: SubmissionPayload, env: Env): Promise&lt;string&gt; {
+  const body = [
+    "## Datos del envío",
+    "",
+    `| Campo | Valor |`,
+    `|-------|-------|`,
+    `| Empresa | ${submission.company} |`,
+    `| Tipo | ${submission.perkType} |`,
+    `| Valor | ${submission.amountDisplay} |`,
+    `| Elegibilidad | ${submission.eligibility} |`,
+    `| Categorías | ${submission.categories.join(", ")} |`,
+    `| Etapas | ${submission.fundingStages.join(", ")} |`,
+    `| URL | ${submission.url} |`,
+    "",
+    "---",
+    `_Enviado desde el formulario público._`,
+  ].join("\n");
+
+  const response = await githubRequest(env, "/issues", {
+    method: "POST",
+    body: JSON.stringify({
+      title: `[submission] ${submission.company}`,
+      body,
+      labels: ["submission", "pending-review"],
+    }),
+  });
+
+  const payload = await parseGithubResponse(response);
+  return payload.html_url as string;
+}</code></pre>
+
+<h3>Variables de entorno nuevas</h3>
+
+<table>
+<thead>
+  <tr>
+    <th>Variable</th>
+    <th>Requerida</th>
+    <th>Propósito</th>
+  </tr>
+</thead>
+<tbody>
+</tbody>
+</table>
+
+<h3>Permisos del token de GitHub</h3>
+
+<p>El token ahora solo necesita <code>issues:write</code> (en lugar de <code>contents:write</code> + <code>pull_requests:write</code>), reduciendo la superficie de riesgo.</p>
+
+<h3>Flujo resultante</h3>
+
+<pre class="mermaid">
+graph TD
+    U["👤 Usuario"] --> F["📝 Formulario<br/>SubmitPerkModal"]
+    F --> W["⚡ Worker<br/>validar + crear"]
+    W --> S["💬 Slack<br/>Notificación al equipo"]
+    W --> I["📋 GitHub Issue<br/>label: submission"]
+    S --> R["👥 Equipo revisa"]
+    I --> R
+    R --> A["✅ Aprueba<br/>Crea archivo .md"]
+    R --> X["❌ Rechaza<br/>Cierra el Issue"]
+</pre>
+  </main>
+  <footer class="footer">
+    <p>Autor: <a href="https://github.com/guspatagonico" target="_blank" rel="noopener">Gustavo Adrián Salvini</a></p>
+  </footer>
+</body>
+</html>

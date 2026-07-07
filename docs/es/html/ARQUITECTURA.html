@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arquitectura — StartupPerks — StartupPerks</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js" defer></script>
+  <script>
+    (function() {
+      function getMermaidTheme() {
+        var theme = document.documentElement.getAttribute("data-theme");
+        var isDark = theme === "dark" || (!theme && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        return {
+          theme: "base",
+          themeVariables: isDark ? {
+            primaryColor: "#272625",
+            primaryTextColor: "#e8e4db",
+            primaryBorderColor: "#3d3a36",
+            lineColor: "#6d6a64",
+            secondaryColor: "#1e1d1c",
+            tertiaryColor: "#1e1d1c",
+            background: "#151413",
+            mainBkg: "#1e1d1c",
+            nodeBorder: "#3d3a36",
+            clusterBkg: "rgba(39,38,37,0.6)",
+            clusterBorder: "#3d3a36",
+            titleColor: "#e8e4db",
+            edgeLabelBackground: "#151413",
+            nodeTextColor: "#e8e4db"
+          } : {
+            primaryColor: "#f5f5f4",
+            primaryTextColor: "#1a1918",
+            primaryBorderColor: "#dedbd7",
+            lineColor: "#9d9994",
+            secondaryColor: "#fafaf9",
+            tertiaryColor: "#fafaf9",
+            background: "#fffefe",
+            mainBkg: "#f5f5f4",
+            nodeBorder: "#dedbd7",
+            clusterBkg: "rgba(240,239,237,0.6)",
+            clusterBorder: "#dedbd7",
+            titleColor: "#1a1918",
+            edgeLabelBackground: "#fffefe",
+            nodeTextColor: "#1a1918"
+          }
+        };
+      }
+      document.addEventListener("DOMContentLoaded", function() {
+        mermaid.initialize(Object.assign({ startOnLoad: true, securityLevel: "loose" }, getMermaidTheme()));
+      });
+    })();
+  </script>
+  <script src="js/theme.js"></script>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-title">StartupPerks · Documentación</a>
+      <div class="nav-actions">
+        <a href="ARQUITECTURA.html">Arquitectura</a>
+        <a href="INFORME_SEGURIDAD.html">Seguridad</a>
+        <a href="ALTERNATIVAS_FLUJO_PUBLICACION.html">Alternativas PR</a>
+        <a href="ALTERNATIVAS_LOW_CODE.html">Low-Code</a>
+                <a href="LICENCIA.html">Licencia</a>
+        <button id="theme-toggle" class="btn-theme" aria-label="Cambiar tema">💻 Sistema</button>
+      </div>
+    </div>
+  </nav>
+  <main class="container">
+<h1>Arquitectura — StartupPerks</h1>
+
+<h2>Resumen</h2>
+
+<p>StartupPerks es un directorio open-source de créditos, descuentos y beneficios para startups. Es un sitio estático con una API pública de envíos que crea PRs en GitHub como borrador.</p>
+
+<table>
+<thead>
+  <tr>
+    <th>Propiedad</th>
+    <th>Valor</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>Renderizado</td>
+    <td>Estático (SSG)</td>
+  </tr>
+  <tr>
+    <td>Contenido</td>
+    <td>Archivos Markdown con frontmatter validado por Zod</td>
+  </tr>
+  <tr>
+    <td>API de envíos</td>
+    <td>Cloudflare Worker (TypeScript)</td>
+  </tr>
+  <tr>
+    <td>Hosting</td>
+    <td>Salida estática de Astro + Cloudflare Workers</td>
+  </tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2>Estructura de Directorios</h2>
+
+<ul class="dir-tree">
+  <li><span class="dir">astro-startup-perks/</span>
+    <ul>
+      <li><span class="dir">src/</span>
+        <ul>
+          <li><span class="dir">content/</span>
+            <ul>
+              <li><span class="dir">perks/</span> <span class="comment">Un archivo .md por beneficio de startup</span></li>
+            </ul>
+          </li>
+          <li><span class="dir">components/</span>
+            <ul>
+              <li><span class="file">PerkCard.astro</span> <span class="comment">Tarjeta de listado de beneficio</span></li>
+              <li><span class="file">PlaceholderCard.astro</span> <span class="comment">Esqueleto de carga</span></li>
+              <li><span class="file">SubmitPerkModal.astro</span> <span class="comment">Formulario de envío + flujo API</span></li>
+            </ul>
+          </li>
+          <li><span class="dir">layouts/</span>
+            <ul>
+              <li><span class="file">BaseLayout.astro</span> <span class="comment">SEO, etiquetas OG, JSON-LD, ViewTransitions</span></li>
+            </ul>
+          </li>
+          <li><span class="dir">pages/</span>
+            <ul>
+              <li><span class="file">index.astro</span> <span class="comment">Inicio: búsqueda, filtro, ordenamiento</span></li>
+              <li><span class="file">perks/[slug].astro</span> <span class="comment">Página de detalle (rutas dinámicas)</span></li>
+              <li><span class="file">contributing.astro</span> <span class="comment">Guía de contribución</span></li>
+              <li><span class="file">faq.astro</span> <span class="comment">Preguntas frecuentes</span></li>
+            </ul>
+          </li>
+          <li><span class="dir">styles/</span>
+            <ul>
+              <li><span class="file">global.css</span></li>
+            </ul>
+          </li>
+          <li><span class="file">content.config.ts</span> <span class="comment">Esquema Zod para frontmatter de beneficios</span></li>
+        </ul>
+      </li>
+      <li><span class="dir">workers/</span>
+        <ul>
+          <li><span class="dir">submit-api/</span>
+            <ul>
+              <li><span class="dir">src/</span>
+                <ul>
+                  <li><span class="file">index.ts</span> <span class="comment">Worker de la API de envíos (archivo único)</span></li>
+                </ul>
+              </li>
+              <li><span class="file">wrangler.toml</span> <span class="comment">Configuración del Worker de Cloudflare</span></li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+      <li><span class="file">package.json</span></li>
+      <li><span class="file">astro.config.ts</span></li>
+      <li><span class="file">tsconfig.json</span></li>
+    </ul>
+  </li>
+</ul>
+
+<hr>
+
+<h2>Capas de la Arquitectura</h2>
+
+<h3>1. Capa de Contenido</h3>
+
+<p><strong>Ubicación:</strong> <code>src/content/perks/*.md</code>   <strong>Esquema:</strong> <code>src/content.config.ts</code> (Zod)</p>
+
+<p>Cada beneficio es un archivo Markdown con frontmatter YAML. Estructura de ejemplo:</p>
+
+<pre><code class="language-yaml">company: "Stripe"
+title: "$50,000 en Créditos de Stripe"
+summary: "Programa oficial para startups de Stripe."
+perkType: "credit"
+amountDisplay: "$50,000"
+currency: "USD"
+eligibility: "Para startups en etapa Seed..."
+fundingStages: ["Seed"]
+regions: ["Global"]
+categories: ["Payments"]
+applyUrl: "https://stripe.com/startups"
+sourceUrl: "https://stripe.com/startups"
+lastVerified: 2026-07-01
+verified: false
+isActive: true</code></pre>
+
+<p><strong>Validación:</strong> Todos los campos se validan en tiempo de build mediante <code>z.object()</code> con restricciones <code>.min()</code>, <code>.url()</code>, <code>.enum()</code>, <code>.coerce.date()</code>.</p>
+
+<p><strong>Restricciones del esquema:</strong></p>
+
+<ul>
+  <li><code>company</code>: mínimo 2 caracteres</li>
+  <li><code>title</code>: mínimo 8 caracteres</li>
+  <li><code>summary</code>: mínimo 24 caracteres</li>
+  <li><code>perkType</code>: enum <code>credit | discount | trial | mixed</code></li>
+  <li><code>amountDisplay</code>: mínimo 2 caracteres</li>
+  <li><code>currency</code>: exactamente 3 caracteres, por defecto <code>USD</code></li>
+  <li><code>eligibility</code>: mínimo 12 caracteres</li>
+  <li><code>categories</code>: array no vacío, cada elemento mínimo 2 caracteres</li>
+  <li><code>applyUrl</code> / <code>sourceUrl</code>: URLs válidas</li>
+  <li><code>verified</code>: booleano, por defecto <code>false</code></li>
+  <li><code>isActive</code>: booleano, por defecto <code>true</code></li>
+</ul>
+
+<hr>
+
+<h3>2. Capa de Presentación (Astro SSG)</h3>
+
+<p><strong>Componentes:</strong></p>
+
+<ul>
+  <li><code>BaseLayout.astro</code> — Layout raíz: metadatos SEO, OpenGraph, Twitter Cards, datos estructurados JSON-LD, View Transitions, carga de fuentes</li>
+  <li><code>PerkCard.astro</code> — Componente de tarjeta para la grilla de inicio</li>
+  <li><code>PlaceholderCard.astro</code> — Esqueleto de carga</li>
+  <li><code>SubmitPerkModal.astro</code> — Modal con formulario de envío y lógica de doble ruta</li>
+</ul>
+
+<p><strong>Páginas:</strong></p>
+
+<table>
+<thead>
+  <tr>
+    <th>Ruta</th>
+    <th>Origen</th>
+    <th>Descripción</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td><code>GET /perks/{slug}</code></td>
+    <td><code>perks/[slug].astro</code></td>
+    <td>Página de detalle (SSG desde colección de contenido)</td>
+  </tr>
+  <tr>
+    <td><code>GET /contributing</code></td>
+    <td><code>contributing.astro</code></td>
+    <td>Guía de contribución</td>
+  </tr>
+  <tr>
+    <td><code>GET /faq</code></td>
+    <td><code>faq.astro</code></td>
+    <td>Preguntas frecuentes</td>
+  </tr>
+</tbody>
+</table>
+
+<p><strong>Flujo de la página de inicio (<code>index.astro</code>):</strong></p>
+
+<div class="flow-steps">
+  <div class="flow-step">
+    <div class="flow-node flow-node-start">1</div>
+    <div class="flow-label"><strong>Cargar</strong><small>getCollection("perks") — obtiene todos los beneficios del content layer</small></div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-node">2</div>
+    <div class="flow-label"><strong>Filtrar</strong><small>Por categoría, etapa de financiamiento y texto de búsqueda</small></div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-node">3</div>
+    <div class="flow-label"><strong>Ordenar</strong><small>Por nombre de empresa, valor del beneficio, o más recientes</small></div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-node">4</div>
+    <div class="flow-label"><strong>Renderizar</strong><small>Grilla de PerkCard con los resultados</small></div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-node flow-node-start">5</div>
+    <div class="flow-label"><strong>Adjuntar</strong><small>SubmitPerkModal para envío de nuevos beneficios</small></div>
+  </div>
+</div>
+
+
+
+<hr>
+
+<h3>3. API de Envíos (Cloudflare Worker)</h3>
+
+<p><strong>Endpoint:</strong> <code>POST /api/submit-perk</code> (también sirve <code>/</code> y <code>/submit-perk</code>)   <strong>Archivo:</strong> <code>workers/submit-api/src/index.ts</code> (342 líneas)</p>
+
+<h4>Variables de Entorno</h4>
+
+<table>
+<thead>
+  <tr>
+    <th>Variable</th>
+    <th>Requerida</th>
+    <th>Propósito</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td><code>GITHUB_REPO</code></td>
+    <td>Sí</td>
+    <td>Repositorio objetivo (ej. <code>owner/repo</code>)</td>
+  </tr>
+  <tr>
+    <td><code>GITHUB_BASE_BRANCH</code></td>
+    <td>No</td>
+    <td>Rama base para el PR (por defecto: <code>main</code>)</td>
+  </tr>
+  <tr>
+    <td><code>ALLOWED_ORIGIN</code></td>
+    <td>No</td>
+    <td>Lista blanca de orígenes CORS</td>
+  </tr>
+</tbody>
+</table>
+
+<h4>Flujo de Petición</h4>
+
+<div class="flow-steps">
+  <div class="flow-step">
+    <div class="flow-node">1</div>
+    <div class="flow-label"><strong>Preflight CORS</strong><small>OPTIONS → 204, devuelve cabeceras CORS</small></div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-node">2</div>
+    <div class="flow-label"><strong>Verificación de ruta</strong><small>isAllowedPath() — solo /api/submit-perk, /submit-perk, /</small></div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-node">3</div>
+    <div class="flow-label"><strong>Verificación de origen</strong><small>Solo si ALLOWED_ORIGIN está configurado</small></div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-node">4</div>
+    <div class="flow-label"><strong>Verificación de método</strong><small>Solo acepta POST</small></div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-node">5</div>
+    <div class="flow-label"><strong>Verificación de token</strong><small>GITHUB_TOKEN y GITHUB_REPO presentes</small></div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-node">6</div>
+    <div class="flow-label"><strong>Parseo JSON</strong><small>request.json() del body</small></div>
+  </div>
+
+  <div class="flow-step-group">
+    <div class="flow-step">
+      <div class="flow-node">7</div>
+      <div class="flow-label"><strong>Validar payload</strong></div>
+    </div>
+    <div class="flow-step-children">
+      <div class="flow-step-child"><code>cleanText()</code> → recortar strings</div>
+      <div class="flow-step-child"><code>normalizeStringArray()</code> → aplanar o envolver arrays</div>
+      <div class="flow-step-child"><code>isValidUrl()</code> → new URL() + verificación de protocolo</div>
+      <div class="flow-step-child">Honeypot → rechazar si el campo "website" está completo</div>
+    </div>
+  </div>
+
+  <div class="flow-step-group">
+    <div class="flow-step">
+      <div class="flow-node">8</div>
+      <div class="flow-label"><strong>Construir nombre de rama</strong></div>
+    </div>
+    <div class="flow-step-children">
+      <div class="flow-step-child"><code>toSlug(company)</code> → sanitizar a [a-z0-9-]+</div>
+      <div class="flow-step-child"><code>branchName = submission/{slug}-{timestamp36}</code></div>
+    </div>
+  </div>
+
+  <div class="flow-step-group">
+    <div class="flow-step">
+      <div class="flow-node">9</div>
+      <div class="flow-label"><strong>Construir markdown</strong></div>
+    </div>
+    <div class="flow-step-children">
+      <div class="flow-step-child"><code>yamlString()</code> → escapar \, ", saltos de línea</div>
+      <div class="flow-step-child"><code>buildMarkdown()</code> → frontmatter YAML + cuerpo</div>
+    </div>
+  </div>
+
+  <div class="flow-step-group">
+    <div class="flow-step">
+      <div class="flow-node">10</div>
+      <div class="flow-label"><strong>Creación de PR en GitHub</strong></div>
+    </div>
+    <div class="flow-step-children">
+      <div class="flow-step-child"><code>getBaseBranchSha()</code> → GET /git/ref/heads/{branch}</div>
+      <div class="flow-step-child"><code>createBranch()</code> → POST /git/refs</div>
+      <div class="flow-step-child"><code>createPerkFile()</code> → PUT /contents/{path} (base64)</div>
+      <div class="flow-step-child"><code>createPullRequest()</code> → POST /pulls (draft: true)</div>
+    </div>
+  </div>
+
+  <div class="flow-step">
+    <div class="flow-node flow-node-start">11</div>
+    <div class="flow-label"><strong>Retornar</strong><small>{ ok: true, prUrl } al cliente</small></div>
+  </div>
+</div>
+
+
+
+<h4>Comunicación con la API de GitHub</h4>
+
+<p>Todas las llamadas a GitHub pasan por <code>githubRequest()</code> que:</p>
+
+<ul>
+  <li>Agrega <code>Authorization: Bearer {GITHUB_TOKEN}</code></li>
+  <li>Establece <code>Accept: application/vnd.github+json</code></li>
+  <li>Establece <code>User-Agent: startup-perks-submit-api</code></li>
+  <li>Pasa por <code>parseGithubResponse()</code> para manejo de errores</li>
+</ul>
+
+<hr>
+
+<h3>4. Rutas de Envío (Estrategia Dual)</h3>
+
+<p>El modal de envío soporta dos caminos:</p>
+
+<h4>Ruta A: API Directa (producción)</h4>
+
+<ol>
+  <li>Usuario llena el formulario en <code>SubmitPerkModal</code></li>
+  <li>Datos del formulario serializados como JSON</li>
+  <li><code>POST</code> a <code>submissionApiUrl</code> (Cloudflare Worker)</li>
+  <li>Worker valida → crea PR borrador en GitHub</li>
+  <li>Retorna <code>{ ok: true, prUrl }</code></li>
+  <li>Cliente abre la URL del PR en nueva pestaña</li>
+</ol>
+
+<h4>Ruta B: Flujo Web de GitHub (respaldo)</h4>
+
+<ol>
+  <li>Usuario llena el formulario</li>
+  <li>Cliente construye markdown vía <code>createMarkdown()</code></li>
+  <li>Construye URL de GitHub: <code>https://github.com/{repo}/new/{branch}/src/content/perks?filename=...&amp;value=...</code></li>
+  <li>Abre página de creación de archivo pre-rellenada de GitHub en nueva pestaña</li>
+  <li>Usuario envía el PR manualmente a través de la UI de GitHub</li>
+</ol>
+
+<p><strong>Lógica de selección:</strong> Si <code>submissionApiUrl</code> está configurado → Ruta A. De lo contrario → Ruta B.</p>
+
+<hr>
+
+<h2>Diagrama de Flujo de Datos</h2>
+
+<pre class="mermaid">
+graph TD
+    subgraph ASTRO["🌐 Sitio Estático — Astro SSG"]
+        IDX["index.astro<br/>Búsqueda · Filtro · Orden"]
+        SLUG["perks/[slug].astro<br/>Página de detalle"]
+        CONT["content/perks/*.md<br/>Colección de contenido"]
+        MODAL["SubmitPerkModal.astro<br/>Formulario de envío"]
+    end
+
+    subgraph WORKER["⚡ Cloudflare Worker"]
+        FETCH["fetch()<br/>Orquestador de peticiones"]
+        CORS["Cabeceras CORS"]
+        VAL["validatePayload()<br/>Validación de entrada"]
+        MD["buildMarkdown()<br/>Generar .md"]
+        SHA["getBaseBranchSha()"]
+        BR["createBranch()"]
+        FILE["createPerkFile()"]
+        PR["createPullRequest()<br/>draft: true"]
+        GHREQ["githubRequest()"]
+    end
+
+    subgraph GITHUB["🔗 GitHub"]
+        API["api.github.com/repos/*"]
+        ISSUE["PR Draft<br/>(revisión humana)"]
+    end
+
+    IDX --> CONT
+    SLUG --> CONT
+    MODAL -->|"Ruta A: POST JSON"| FETCH
+    MODAL -->|"Ruta B: URL prefilled"| ISSUE
+
+    FETCH --> CORS
+    FETCH --> VAL
+    VAL --> MD
+    MD --> SHA
+    SHA --> GHREQ
+    SHA --> BR
+    BR --> GHREQ
+    MD --> FILE
+    FILE --> GHREQ
+    MD --> PR
+    PR --> GHREQ
+    GHREQ --> API
+
+    style ASTRO fill:#e8f4e8,stroke:#2d8a2d,color:#1a3a1a
+    style WORKER fill:#e8f0fe,stroke:#1a5ab4,color:#1a2a4a
+    style GITHUB fill:#f5f0e8,stroke:#8a6d2d,color:#3a2a1a
+</pre>
+
+<hr>
+
+<h2>Modelo de Seguridad</h2>
+
+<table>
+<thead>
+  <tr>
+    <th>Preocupación</th>
+    <th>Mitigación</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>Path traversal</td>
+    <td><code>toSlug()</code> restringe a <code>[a-z0-9-]+</code></td>
+  </tr>
+  <tr>
+    <td>Inyección de URL</td>
+    <td><code>isValidUrl()</code> valida protocolo (solo http/https)</td>
+  </tr>
+  <tr>
+    <td>Inyección YAML</td>
+    <td><code>yamlString()</code> escapa <code>\</code>, <code>"</code>, saltos de línea</td>
+  </tr>
+  <tr>
+    <td>XSS (cliente)</td>
+    <td>Usa <code>textContent</code>, no <code>innerHTML</code></td>
+  </tr>
+  <tr>
+    <td>Exposición de secretos</td>
+    <td>Token en variables de entorno de Cloudflare, no en código fuente</td>
+  </tr>
+  <tr>
+    <td>CSRF</td>
+    <td>Verificación CORS <code>ALLOWED_ORIGIN</code> (cuando está configurado)</td>
+  </tr>
+  <tr>
+    <td>Rate limiting</td>
+    <td>No implementado (ver INFORME_SEGURIDAD.md)</td>
+  </tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2>Estructura de Comunidades (Análisis Gortex)</h2>
+
+<p>El código se auto-particiona en estas áreas funcionales:</p>
+
+<table>
+<thead>
+  <tr>
+    <th>Comunidad</th>
+    <th>Hub</th>
+    <th>Tamaño</th>
+    <th>Propósito</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>submit-api/src · githubRequest</td>
+    <td><code>githubRequest</code></td>
+    <td>30 símbolos</td>
+    <td>Capa de comunicación con API de GitHub</td>
+  </tr>
+  <tr>
+    <td>submit-api/src · validatePayload</td>
+    <td><code>validatePayload</code></td>
+    <td>19 símbolos</td>
+    <td>Sanitización y validación de entrada</td>
+  </tr>
+  <tr>
+    <td>submit-api/src · getBaseBranchSha</td>
+    <td><code>getBaseBranchSha</code></td>
+    <td>15 símbolos</td>
+    <td>Operaciones de ramas/refs de GitHub</td>
+  </tr>
+  <tr>
+    <td>components</td>
+    <td><code>setupModal</code></td>
+    <td>9 símbolos</td>
+    <td>UI del modal y lógica de envío de formulario</td>
+  </tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2>Decisiones Clave de Diseño</h2>
+
+<ol>
+  <li><strong>Contenido primero:</strong> Los beneficios son archivos Markdown planos. El sitio es un visor, no un CMS.</li>
+  <li><strong>Ruta de envío dual:</strong> API directa cuando está disponible, flujo web de GitHub como respaldo — no requiere backend para instancias auto-hospedadas.</li>
+  <li><strong>PRs como borrador:</strong> Todos los envíos automatizados crean PRs borrador. Se requiere revisión humana antes del merge.</li>
+  <li><strong>Escapado YAML doble:</strong> Tanto el cliente (<code>SubmitPerkModal</code>) como el servidor (<code>buildMarkdown</code>) escapan valores YAML independientemente — defensa en profundidad.</li>
+  <li><strong>Sin autenticación en API de envíos:</strong> Pública por diseño ya que los PRs son borradores y requieren revisión humana.</li>
+  <li><strong>Esquema Zod:</strong> Validación de contenido en tiempo de build mediante colecciones de Astro. El mismo esquema se aplica en la validación del worker.</li>
+</ol>
+
+<hr>
+
+<h2>Superficie de Configuración</h2>
+
+<table>
+<thead>
+  <tr>
+    <th>Config</th>
+    <th>Cómo</th>
+    <th>Por defecto</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>Configuración de Astro</td>
+    <td><code>astro.config.ts</code></td>
+    <td>—</td>
+  </tr>
+  <tr>
+    <td>Variables de entorno del Worker</td>
+    <td>Cloudflare Dashboard / <code>wrangler secret</code></td>
+    <td>—</td>
+  </tr>
+  <tr>
+    <td>Config del Worker</td>
+    <td><code>workers/submit-api/wrangler.toml</code></td>
+    <td>—</td>
+  </tr>
+  <tr>
+    <td>URL de API de envíos</td>
+    <td>Prop del frontend <code>submissionApiUrl</code></td>
+    <td>Vacío (usa flujo GitHub)</td>
+  </tr>
+  <tr>
+    <td>URL del repositorio</td>
+    <td>Prop del frontend <code>repositoryUrl</code></td>
+    <td>Vacío</td>
+  </tr>
+  <tr>
+    <td>Rama base</td>
+    <td>Prop del frontend <code>baseBranch</code></td>
+    <td><code>main</code></td>
+  </tr>
+</tbody>
+</table>
+  </main>
+  <footer class="footer">
+    <p>Autor: <a href="https://github.com/guspatagonico" target="_blank" rel="noopener">Gustavo Adrián Salvini</a></p>
+  </footer>
+</body>
+</html>

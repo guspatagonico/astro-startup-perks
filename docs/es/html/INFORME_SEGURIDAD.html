@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Informe de Seguridad — StartupPerks — StartupPerks</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+  <script src="js/theme.js"></script>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-title">StartupPerks · Documentación</a>
+      <div class="nav-actions">
+        <a href="ARQUITECTURA.html">Arquitectura</a>
+        <a href="INFORME_SEGURIDAD.html">Seguridad</a>
+        <a href="ALTERNATIVAS_FLUJO_PUBLICACION.html">Alternativas PR</a>
+        <a href="ALTERNATIVAS_LOW_CODE.html">Low-Code</a>
+                <a href="LICENCIA.html">Licencia</a>
+        <button id="theme-toggle" class="btn-theme" aria-label="Cambiar tema">💻 Sistema</button>
+      </div>
+    </div>
+  </nav>
+  <main class="container">
+<h1>Informe de Seguridad — StartupPerks</h1>
+
+<p>Generado: 2026-07-06 | Herramientas: Gortex v0.59.1, Gitleaks v8, OSV, revisión manual</p>
+
+<hr>
+
+<h2>Alcance</h2>
+
+<table>
+<thead>
+  <tr>
+    <th>Capa</th>
+    <th>Archivos</th>
+    <th>Perfil de Riesgo</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>API de Envíos (Worker)</td>
+    <td><code>workers/submit-api/src/index.ts</code></td>
+    <td><strong>Medio</strong> — acepta POST público, crea PRs en GitHub</td>
+  </tr>
+  <tr>
+    <td>Contenido</td>
+    <td><code>src/content/perks/*.md</code></td>
+    <td>Bajo — validado mediante esquema Zod</td>
+  </tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2>Hallazgos</h2>
+
+<h3>1. Sin Rate Limiting en la API de Envíos — MEDIO</h3>
+
+<p><strong>Archivo:</strong> <code>workers/submit-api/src/index.ts:22</code></p>
+
+<p>El endpoint <code>/api/submit-perk</code> no tiene rate limiting, throttling ni prevención de abuso más allá del campo honeypot. Un atacante podría inundar envíos, creando miles de ramas y PRs borrador en el repositorio de GitHub.</p>
+
+<p><strong>Impacto:</strong> Agotamiento de recursos (límites de rate de la API de GitHub, contaminación del repositorio)   <strong>Recomendación:</strong> Agregar rate limiting de Cloudflare Workers mediante <code>wrangler.toml</code> o un token bucket basado en KV. Considerar agregar un desafío CAPTCHA en el frontend antes de la llamada API.</p>
+
+<hr>
+
+<h3>2. CORS Permisivo como Respaldo — BAJO</h3>
+
+<p><strong>Archivo:</strong> <code>workers/submit-api/src/index.ts:95-103</code></p>
+
+<p>Cuando la variable de entorno <code>ALLOWED_ORIGIN</code> no está configurada, <code>getCorsHeaders</code> usa como respaldo <code>origin || "*"</code>, lo que hace eco de cualquier cabecera <code>Origin</code>. Esto efectivamente permite POSTs de cualquier dominio.</p>
+
+<pre><code>const allowOrigin = allowedOrigin || origin || "*";</code></pre>
+
+<p>Además, la verificación de origen en las líneas 35-37 solo se activa cuando <code>ALLOWED_ORIGIN</code> está configurado explícitamente:</p>
+
+<pre><code>if (env.ALLOWED_ORIGIN &amp;&amp; origin &amp;&amp; origin !== env.ALLOWED_ORIGIN) {
+  return jsonResponse({ ok: false, error: "Origin not allowed." }, 403, corsHeaders);
+}</code></pre>
+
+<p><strong>Impacto:</strong> Cualquier sitio web puede hacer POST de envíos a la API. Combinado con la falta de rate limiting, esto permite ataques de inundación estilo CSRF.   <strong>Recomendación:</strong> Configurar siempre <code>ALLOWED_ORIGIN</code> en producción. Considerar fallar explícitamente si <code>ALLOWED_ORIGIN</code> no está configurado y la petición tiene una cabecera <code>Origin</code>.</p>
+
+<hr>
+
+<h3>3. Falta de Content Security Policy (CSP) — BAJO</h3>
+
+<p><strong>Archivo:</strong> <code>src/layouts/BaseLayout.astro</code> (sin cabecera CSP ni meta tag)</p>
+
+<p>No hay cabecera <code>Content-Security-Policy</code> ni etiqueta <code>&lt;meta&gt;</code>. El sitio usa <code>set:html</code> para JSON-LD (línea 68) y un manejador <code>onclick</code> inline en <code>index.astro:238</code>.</p>
+
+<p><strong>Impacto:</strong> Sin defensa en profundidad contra XSS si contenido de usuario llegara a renderizarse de forma insegura.   <strong>Recomendación:</strong> Agregar una cabecera CSP mediante middleware de Astro o la plataforma de despliegue (Cloudflare/Vercel). Ejemplo:</p>
+
+<pre><code>Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com</code></pre>
+
+<hr>
+
+<h3>4. Ciclo de Dependencia en el Worker — INFORMATIVO</h3>
+
+<p><strong>Herramienta:</strong> Gortex <code>analyze --kind cycles</code></p>
+
+<p>Ciclo entre comunidades detectado (severidad 2):</p>
+
+<pre><code>getBaseBranchSha → githubRequest → fetch → getBaseBranchSha</code></pre>
+
+<p><code>getBaseBranchSha</code> llama a <code>githubRequest</code>, que es llamado desde <code>fetch</code>, y <code>fetch</code> llama a <code>getBaseBranchSha</code>. Es un ciclo estructural (están en el mismo módulo, llamadas secuenciales, no recursivas), por lo que el impacto en tiempo de ejecución es mínimo.</p>
+
+<p><strong>Impacto:</strong> Bajo — funciones del mismo módulo llamadas en secuencia, no recursión real.   <strong>Recomendación:</strong> No se requiere acción. El ciclo existe porque <code>githubRequest</code> es usado por múltiples funciones llamadas desde <code>fetch</code>. Refactorizar <code>githubRequest</code> para no referenciar el ámbito externo eliminaría el ciclo pero no es crítico.</p>
+
+<hr>
+
+<h3>5. Patrones de Throw Inseguros — INFORMATIVO</h3>
+
+<p><strong>Herramienta:</strong> Gortex <code>analyze --kind unsafe_patterns</code></p>
+
+<p>Dos declaraciones <code>throw new Error()</code> detectadas en el worker:</p>
+
+<ul>
+  <li><code>workers/submit-api/src/index.ts:264</code> — <code>getBaseBranchSha</code></li>
+  <li><code>workers/submit-api/src/index.ts:329</code> — <code>parseGithubResponse</code></li>
+</ul>
+
+<p><strong>Impacto:</strong> Mínimo. Ambas son capturadas por el try/catch en <code>fetch</code> (líneas 84-87) y devueltas como respuestas JSON de error.   <strong>Recomendación:</strong> Patrón aceptable para Cloudflare Workers.</p>
+
+<hr>
+
+<h3>6. Fuga de Mensajes de Error al Cliente — BAJO</h3>
+
+<p><strong>Archivo:</strong> <code>workers/submit-api/src/index.ts:84-86</code></p>
+
+<pre><code>const message = error instanceof Error ? error.message : "Could not create pull request.";
+return jsonResponse({ ok: false, error: message }, 502, corsHeaders);</code></pre>
+
+<p>Los mensajes de error de la API de GitHub (desde <code>parseGithubResponse</code>) se devuelven directamente al cliente. Si GitHub incluyera información sensible en mensajes de error (poco probable), esto la expondría.</p>
+
+<p><strong>Impacto:</strong> Bajo — los errores de la API de GitHub son genéricos.   <strong>Recomendación:</strong> Considerar registrar el error completo en el servidor (la observabilidad del Worker de Cloudflare está habilitada) y devolver un mensaje genérico al cliente.</p>
+
+<hr>
+
+<h3>7. Honeypot Anti-Spam — CORRECTO</h3>
+
+<p><strong>Archivo:</strong> <code>workers/submit-api/src/index.ts:131-133</code></p>
+
+<pre><code class="language-typescript">if (website) {
+  return { ok: false, error: "Submission rejected." };
+}</code></pre>
+
+<p>El campo <code>website</code> está oculto mediante CSS (clase <code>field-hp</code>, posicionado fuera de pantalla en <code>left: -9999px</code> en el modal) y marcado con <code>tabindex="-1" autocomplete="off"</code>. Los bots que auto-completan todos los campos activarán el rechazo. Los usuarios legítimos no verán ni interactuarán con él.</p>
+
+<p><strong>Estado:</strong> Medida anti-bot efectiva. No se requiere acción.</p>
+
+<hr>
+
+<h3>8. Validación de Entrada — CORRECTO</h3>
+
+<p>Múltiples capas de validación, todos hallazgos positivos:</p>
+
+<table>
+<thead>
+  <tr>
+    <th>Función</th>
+    <th>Archivo:Línea</th>
+    <th>Comportamiento</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td><code>cleanText</code></td>
+    <td><code>index.ts:171</code></td>
+    <td>Recorta strings, usa string vacío como respaldo para no-strings</td>
+  </tr>
+  <tr>
+    <td><code>isValidUrl</code></td>
+    <td><code>index.ts:185</code></td>
+    <td>Usa el parser <code>new URL()</code>, restringe a <code>http:</code> y <code>https:</code></td>
+  </tr>
+  <tr>
+    <td><code>toSlug</code></td>
+    <td><code>index.ts:194</code></td>
+    <td>Sanitiza a solo <code>[a-z0-9-]+</code> — path traversal imposible</td>
+  </tr>
+  <tr>
+    <td><code>yamlString</code></td>
+    <td><code>index.ts:203</code></td>
+    <td>Escapa <code>\</code>, <code>"</code>, y saltos de línea para seguridad YAML</td>
+  </tr>
+  <tr>
+    <td>Esquema Zod</td>
+    <td><code>content.config.ts:6</code></td>
+    <td>Validación <code>.min()</code>, <code>.url()</code>, <code>.enum()</code>, <code>.date()</code> en tiempo de build</td>
+  </tr>
+</tbody>
+</table>
+
+<hr>
+
+<h3>9. Secretos y Credenciales — CORRECTO</h3>
+
+<ul>
+  <li><strong>Escaneo Gitleaks:</strong> No se detectaron secretos en el código</li>
+  <li><strong>Token de GitHub:</strong> Almacenado como variable de entorno del Worker de Cloudflare (<code>env.GITHUB_TOKEN</code>), no en código fuente</li>
+  <li><strong>Transporte del token:</strong> Cabecera <code>Authorization: Bearer</code> (estándar), no en parámetros de URL</li>
+  <li><strong>Sin variables de entorno en <code>wrangler.toml</code></strong> — correcto, deben configurarse mediante <code>wrangler secret</code></li>
+</ul>
+
+<hr>
+
+<h3>10. Seguridad en la Creación de PRs — CORRECTO</h3>
+
+<ul>
+  <li>Los PRs se crean como <strong>borrador</strong> (<code>draft: true</code>, línea 306) — sin merges accidentales</li>
+  <li>Título del PR con prefijo <code>feat:</code> de conventional commits</li>
+  <li>Nombres de rama usan sufijo basado en timestamp (<code>Date.now().toString(36)</code>) para unicidad</li>
+</ul>
+
+<hr>
+
+<h3>11. SAST (Análisis Estático) — LIMPIO</h3>
+
+<ul>
+  <li><strong>Escaneo de higiene Gortex:</strong> 0 coincidencias (190+ reglas en 8 lenguajes)</li>
+  <li><strong>Consultas nombradas Gortex (hardcoded-secrets, xss, ssrf, command-injection):</strong> 0 coincidencias</li>
+  <li><strong>Código muerto Gortex:</strong> 0 símbolos</li>
+  <li><strong>Usuarios de variables de entorno Gortex:</strong> 0 patrones expuestos</li>
+</ul>
+
+<hr>
+
+<h2>Resumen</h2>
+
+<table>
+<thead>
+  <tr>
+    <th>#</th>
+    <th>Hallazgo</th>
+    <th>Severidad</th>
+    <th>Estado</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>2</td>
+    <td>CORS permisivo como respaldo</td>
+    <td>Bajo</td>
+    <td>Requiere configuración</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>Falta de cabecera CSP</td>
+    <td>Bajo</td>
+    <td>Recomendado</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>Ciclo de dependencia en worker</td>
+    <td>Informativo</td>
+    <td>Aceptable</td>
+  </tr>
+  <tr>
+    <td>5</td>
+    <td>Patrones de throw inseguros</td>
+    <td>Informativo</td>
+    <td>Aceptable</td>
+  </tr>
+  <tr>
+    <td>6</td>
+    <td>Fuga de mensajes de error</td>
+    <td>Bajo</td>
+    <td>Considerar</td>
+  </tr>
+  <tr>
+    <td>7</td>
+    <td>Honeypot anti-spam</td>
+    <td>—</td>
+    <td>Correcto</td>
+  </tr>
+  <tr>
+    <td>8</td>
+    <td>Validación de entrada</td>
+    <td>—</td>
+    <td>Correcto</td>
+  </tr>
+  <tr>
+    <td>9</td>
+    <td>Gestión de secretos</td>
+    <td>—</td>
+    <td>Correcto</td>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>Seguridad de PRs (borradores)</td>
+    <td>—</td>
+    <td>Correcto</td>
+  </tr>
+  <tr>
+    <td>11</td>
+    <td>Resultados SAST</td>
+    <td>—</td>
+    <td>Limpio</td>
+  </tr>
+</tbody>
+</table>
+
+<p><strong>Riesgo global: BAJO.</strong> El proyecto es un sitio estático con un único endpoint de API público que crea PRs borrador. Las principales preocupaciones son DoS mediante envíos sin rate limiting y valores predeterminados de CORS excesivamente permisivos. No se encontraron secretos, vectores XSS ni vulnerabilidades de inyección.</p>
+  </main>
+  <footer class="footer">
+    <p>Autor: <a href="https://github.com/guspatagonico" target="_blank" rel="noopener">Gustavo Adrián Salvini</a></p>
+  </footer>
+</body>
+</html>
